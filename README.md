@@ -26,22 +26,22 @@ A Laravel package for OAuth client implementation using Laravel Socialite with L
 
 #### Laravel 12.x (Latest)
 ```bash
-composer require mdigi/laravel-sso-client
+composer require omniglies/laravel-sso-client
 ```
 
 #### Laravel 11.x
 ```bash
-composer require mdigi/laravel-sso-client:^11.0
+composer require omniglies/laravel-sso-client:^11.0
 ```
 
 #### Laravel 10.x
 ```bash
-composer require mdigi/laravel-sso-client:^10.0
+composer require omniglies/laravel-sso-client:^10.0
 ```
 
 #### Laravel 9.x
 ```bash
-composer require mdigi/laravel-sso-client:^9.0
+composer require omniglies/laravel-sso-client:^9.0
 ```
 
 ### Quick Setup
@@ -152,7 +152,7 @@ The package automatically registers these routes:
 Access the SSO user service for advanced operations:
 
 ```php
-use Mdigi\LaravelSsoClient\Services\SsoUserService;
+use Omniglies\LaravelSsoClient\Services\SsoUserService;
 
 $ssoService = new SsoUserService();
 
