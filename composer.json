@@ -1,17 +1,17 @@
 {
-    "name": "mdigi/laravel-sso-client",
+    "name": "omniglies/laravel-sso-client",
     "description": "Laravel package for OAuth client using Laravel Socialite with LaravelPassport driver",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Mdigi\\LaravelSsoClient\\": "src/"
+            "Omniglies\\LaravelSsoClient\\": "src/"
         }
     },
     "authors": [
         {
-            "name": "MDIGI",
-            "email": "info@mdigi.co.id"
+            "name": "aanfarhan",
+            "email": "abaz.nurfarhana@gmail.com"
         }
     ],
     "minimum-stability": "dev",
@@ -29,7 +29,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Mdigi\\LaravelSsoClient\\SsoClientServiceProvider"
+                "Omniglies\\LaravelSsoClient\\SsoClientServiceProvider"
             ]
         }
     },
