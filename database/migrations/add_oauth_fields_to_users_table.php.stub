@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('oauth_id')->nullable()->unique()->after('id');
+            $table->string('username')->nullable()->after('oauth_id');
+            $table->json('oauth_data')->nullable()->after('email_verified_at');
+            $table->timestamp('synced_at')->nullable()->after('oauth_data');
+            $table->boolean('is_active')->default(true)->after('synced_at');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['oauth_id', 'username', 'oauth_data', 'synced_at', 'is_active']);
+        });
+    }
+};
