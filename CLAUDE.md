@@ -6,6 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Laravel package for OAuth client implementation using Laravel Socialite with LaravelPassport driver. It provides SSO integration, user synchronization, and role management between OAuth client and server applications.
 
+## Multi-Version Support
+
+This package supports multiple Laravel versions using a branching strategy:
+
+### Branch Structure
+- **main** - Laravel 12.x support (default branch)
+- **11.x** - Laravel 11.x support 
+- **10.x** - Laravel 10.x support
+- **9.x** - Laravel 9.x support
+
+### Version Matrix
+| Laravel Version | Package Version | PHP Version | Branch | Status |
+|----------------|-----------------|-------------|--------|--------|
+| 12.x | ^12.0 | ^8.2 | main | Active Development |
+| 11.x | ^11.0 | ^8.2 | 11.x | Active Maintenance |
+| 10.x | ^10.0 | ^8.1 | 10.x | Active Maintenance |
+| 9.x | ^9.0 | ^8.0 | 9.x | LTS / Security Fixes |
+
+### Working with Branches
+- **Feature development**: Use the main branch (Laravel 12.x)
+- **Bug fixes**: Apply to appropriate version branch, then forward-merge if compatible
+- **Security fixes**: Apply to all supported branches
+- **Breaking changes**: Only in main branch for next major version
+
 ## Key Commands
 
 ### Installation & Setup
@@ -45,8 +69,27 @@ php artisan sso:sync --test-password-sync=user@example.com
 # Run PHPUnit tests
 ./vendor/bin/phpunit
 
-# Test with Orchestra Testbench
+# Test with Orchestra Testbench  
 composer test
+
+# Test specific Laravel version (GitHub Actions handles this automatically)
+composer require "laravel/framework:^12.0" "orchestra/testbench:^10.0" --no-update
+composer update && ./vendor/bin/phpunit
+```
+
+### Branch Management
+```bash
+# Switch between Laravel version branches
+git checkout main      # Laravel 12.x
+git checkout 11.x      # Laravel 11.x  
+git checkout 10.x      # Laravel 10.x
+git checkout 9.x       # Laravel 9.x
+
+# Create tags for releases
+git tag v12.1.0 -m "Release message"  # On main branch
+git tag v11.1.0 -m "Release message"  # On 11.x branch
+git tag v10.1.0 -m "Release message"  # On 10.x branch
+git tag v9.1.0 -m "Release message"   # On 9.x branch
 ```
 
 ## Architecture & Structure
