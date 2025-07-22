@@ -1,6 +1,6 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient\Services;
+namespace Omniglies\LaravelSsoClient\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;

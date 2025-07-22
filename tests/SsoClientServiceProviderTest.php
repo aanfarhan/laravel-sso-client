@@ -1,9 +1,9 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient\Tests;
+namespace Omniglies\LaravelSsoClient\Tests;
 
-use Mdigi\LaravelSsoClient\SsoClientServiceProvider;
-use Mdigi\LaravelSsoClient\SsoClient;
+use Omniglies\LaravelSsoClient\SsoClientServiceProvider;
+use Omniglies\LaravelSsoClient\SsoClient;
 
 class SsoClientServiceProviderTest extends TestCase
 {

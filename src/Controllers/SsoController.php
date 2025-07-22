@@ -1,13 +1,13 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient\Controllers;
+namespace Omniglies\LaravelSsoClient\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
-use Mdigi\LaravelSsoClient\Services\SsoUserService;
+use Omniglies\LaravelSsoClient\Services\SsoUserService;
 
 class SsoController extends Controller
 {
