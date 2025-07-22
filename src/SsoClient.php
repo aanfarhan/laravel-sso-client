@@ -1,6 +1,6 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient;
+namespace Omniglies\LaravelSsoClient;
 
 class SsoClient
 {

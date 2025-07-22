@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Mdigi\LaravelSsoClient\Controllers\SsoController;
+use Omniglies\LaravelSsoClient\Controllers\SsoController;
 
 Route::get('redirect', [SsoController::class, 'redirect'])->name('redirect');
 Route::get('callback', [SsoController::class, 'callback'])->name('callback');

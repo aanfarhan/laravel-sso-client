@@ -1,9 +1,9 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient\Tests;
+namespace Omniglies\LaravelSsoClient\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use Mdigi\LaravelSsoClient\SsoClientServiceProvider;
+use Omniglies\LaravelSsoClient\SsoClientServiceProvider;
 
 class TestCase extends Orchestra
 {

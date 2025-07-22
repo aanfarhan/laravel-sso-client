@@ -1,10 +1,10 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient;
+namespace Omniglies\LaravelSsoClient;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
-use Mdigi\LaravelSsoClient\Commands\SsoInstallCommand;
+use Omniglies\LaravelSsoClient\Commands\SsoInstallCommand;
 
 class SsoClientServiceProvider extends ServiceProvider
 {
@@ -33,7 +33,7 @@ class SsoClientServiceProvider extends ServiceProvider
 
             $this->commands([
                 SsoInstallCommand::class,
-                \Mdigi\LaravelSsoClient\Commands\SsoSyncCommand::class,
+                \Omniglies\LaravelSsoClient\Commands\SsoSyncCommand::class,
             ]);
         }
 

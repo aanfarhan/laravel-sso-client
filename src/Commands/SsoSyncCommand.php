@@ -1,12 +1,12 @@
 <?php
 
-namespace Mdigi\LaravelSsoClient\Commands;
+namespace Omniglies\LaravelSsoClient\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Mdigi\LaravelSsoClient\Services\SsoUserService;
+use Omniglies\LaravelSsoClient\Services\SsoUserService;
 use Carbon\Carbon;
 
 class SsoSyncCommand extends Command
