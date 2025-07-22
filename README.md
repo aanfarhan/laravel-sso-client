@@ -15,31 +15,12 @@ A Laravel package for OAuth client implementation using Laravel Socialite with L
 
 | Laravel Version | Package Version | PHP Version | Branch | Status |
 |----------------|-----------------|-------------|--------|--------|
-| 12.x | ^12.0 | ^8.2 | main | Active Development |
-| 11.x | ^11.0 | ^8.2 | 11.x | Active Maintenance |
-| 10.x | ^10.0 | ^8.1 | 10.x | Active Maintenance |
-| 9.x | ^9.0 | ^8.0 | 9.x | LTS / Security Fixes |
+| 9.x | ^9.0 | ^8.0 | 9.x | Current Release |
 
 ## Installation
 
 ### Via Composer
 
-#### Laravel 12.x (Latest)
-```bash
-composer require omniglies/laravel-sso-client
-```
-
-#### Laravel 11.x
-```bash
-composer require omniglies/laravel-sso-client:^11.0
-```
-
-#### Laravel 10.x
-```bash
-composer require omniglies/laravel-sso-client:^10.0
-```
-
-#### Laravel 9.x
 ```bash
 composer require omniglies/laravel-sso-client:^9.0
 ```
@@ -183,27 +164,6 @@ The package adds these fields to your users table:
 
 ## Requirements
 
-This package supports multiple Laravel versions with different requirements:
-
-### Laravel 12.x (main branch)
-- PHP ^8.2
-- Laravel ^12.0
-- Laravel Socialite ^5.0
-- SocialiteProviders LaravelPassport ^4.0
-
-### Laravel 11.x (11.x branch)
-- PHP ^8.2
-- Laravel ^11.0
-- Laravel Socialite ^5.0
-- SocialiteProviders LaravelPassport ^4.0
-
-### Laravel 10.x (10.x branch)
-- PHP ^8.1
-- Laravel ^10.0
-- Laravel Socialite ^5.0
-- SocialiteProviders LaravelPassport ^4.0
-
-### Laravel 9.x (9.x branch)
 - PHP ^8.0
 - Laravel ^9.0
 - Laravel Socialite ^5.0
