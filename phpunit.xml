@@ -16,19 +16,6 @@
         </testsuite>
     </testsuites>
 
-    <coverage>
-        <report>
-            <clover outputFile="coverage.clover"/>
-            <html outputDirectory="coverage-html"/>
-            <text outputFile="php://stdout" showUncoveredFiles="false"/>
-        </report>
-    </coverage>
-
-    <source>
-        <include>
-            <directory suffix=".php">./src</directory>
-        </include>
-    </source>
 
     <php>
         <env name="APP_ENV" value="testing"/>
