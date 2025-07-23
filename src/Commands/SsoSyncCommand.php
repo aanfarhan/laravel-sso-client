@@ -31,7 +31,8 @@ class SsoSyncCommand extends Command
                            {--skip-password-sync : Skip password synchronization entirely}
                            {--test-password-sync= : Test password sync for specific user email}
                            {--validate-passwords : Validate password compatibility before sync}
-                           {--show-field-detection : Show auto-detected syncable and preserved fields}';
+                           {--show-field-detection : Show auto-detected syncable and preserved fields}
+                           {--test-connection : Test OAuth server connection and permissions}';
     
     protected $description = 'Sync user data between OAuth client and server';
 
@@ -106,6 +107,12 @@ class SsoSyncCommand extends Command
             return 0;
         }
 
+        // Test connection and permissions if requested
+        if ($this->option('test-connection')) {
+            $this->runConnectionTest();
+            return 0;
+        }
+
         // Setup scope management if enabled
         if ($this->customScopes || $this->noScopes || $this->updateScopes || $this->interactiveScopes) {
             if (!$this->setupScopeManagement()) {
@@ -174,14 +181,72 @@ class SsoSyncCommand extends Command
             $response = $this->ssoUserService->searchUsers(['limit' => 1]);
             if ($response === null) {
                 $this->error('❌ Failed to connect to OAuth server');
+                $this->showConnectionTroubleshooting();
                 return false;
             }
             $this->info('✅ Connected to OAuth server successfully');
             return true;
         } catch (\Exception $e) {
-            $this->error('❌ OAuth server connection failed: ' . $e->getMessage());
+            $errorMessage = $e->getMessage();
+            
+            // Check for specific permission errors
+            if (strpos($errorMessage, '403') !== false || strpos($errorMessage, 'admin user management permissions') !== false) {
+                $this->error('❌ Permission Error: Client lacks user management permissions');
+                $this->showPermissionTroubleshooting();
+            } else {
+                $this->error('❌ OAuth server connection failed: ' . $errorMessage);
+                $this->showConnectionTroubleshooting();
+            }
             return false;
         }
+    }
+
+    protected function showPermissionTroubleshooting(): void
+    {
+        $this->newLine();
+        $this->warn('🔧 Permission Issue Troubleshooting:');
+        $this->newLine();
+        
+        $this->line('The OAuth client does not have the required permissions for user management.');
+        $this->line('To fix this, you need to grant admin permissions to your OAuth client.');
+        $this->newLine();
+        
+        $this->info('📋 Required Steps on OAuth Server:');
+        $this->line('1. Update your OAuth client configuration to include admin scopes');
+        $this->line('2. Ensure the client has "user-management" or "admin" scope permissions');
+        $this->line('3. Verify the client_id and client_secret are correct in your .env file');
+        $this->newLine();
+        
+        $this->info('🔑 Current OAuth Configuration:');
+        $this->line('   Client ID: ' . (config('services.laravelpassport.client_id') ?: '(Not Set)'));
+        $this->line('   Host: ' . (config('services.laravelpassport.host') ?: '(Not Set)'));
+        $this->line('   Secret: ' . (config('services.laravelpassport.client_secret') ? '(Set)' : '(Not Set)'));
+        $this->newLine();
+        
+        $this->info('💡 Quick Fix:');
+        $this->line('Contact your OAuth server administrator to grant your client the following scopes:');
+        $this->line('• user-management');
+        $this->line('• admin-api');
+        $this->line('• client-credentials-admin');
+    }
+
+    protected function showConnectionTroubleshooting(): void
+    {
+        $this->newLine();
+        $this->warn('🔧 Connection Troubleshooting:');
+        $this->newLine();
+        
+        $this->info('🔍 Check these common issues:');
+        $this->line('1. Verify LARAVELPASSPORT_HOST is correctly set in .env');
+        $this->line('2. Ensure LARAVELPASSPORT_CLIENT_ID and CLIENT_SECRET are valid');
+        $this->line('3. Check if the OAuth server is accessible');
+        $this->line('4. Verify the /api/users/search endpoint exists on the server');
+        $this->newLine();
+        
+        $this->info('🔑 Current Configuration:');
+        $this->line('   Host: ' . (config('services.laravelpassport.host') ?: '(Not Set)'));
+        $this->line('   Client ID: ' . (config('services.laravelpassport.client_id') ?: '(Not Set)'));
+        $this->line('   Secret: ' . (config('services.laravelpassport.client_secret') ? '(Set)' : '(Not Set)'));
     }
 
     protected function processUser($user, bool $isDryRun): void
@@ -1194,5 +1259,91 @@ class SsoSyncCommand extends Command
                 $this->line("  • {$field}");
             }
         }
+    }
+
+    protected function runConnectionTest(): void
+    {
+        $this->info('🔍 OAuth Server Connection & Permission Test');
+        $this->newLine();
+
+        // Test 1: Configuration Check
+        $this->info('1️⃣ Configuration Check:');
+        $host = config('services.laravelpassport.host');
+        $clientId = config('services.laravelpassport.client_id');
+        $clientSecret = config('services.laravelpassport.client_secret');
+
+        $this->line("   Host: " . ($host ?: '❌ Not Set'));
+        $this->line("   Client ID: " . ($clientId ?: '❌ Not Set'));
+        $this->line("   Client Secret: " . ($clientSecret ? '✅ Set' : '❌ Not Set'));
+        $this->newLine();
+
+        if (!$host || !$clientId || !$clientSecret) {
+            $this->error('❌ Configuration incomplete. Please set all required environment variables.');
+            return;
+        }
+
+        // Test 2: OAuth Token Request
+        $this->info('2️⃣ OAuth Token Request Test:');
+        try {
+            $token = $this->ssoUserService->clientCredentials->getAccessToken();
+            if ($token) {
+                $this->line('   ✅ Successfully obtained access token');
+            } else {
+                $this->line('   ❌ Failed to obtain access token');
+                return;
+            }
+        } catch (\Exception $e) {
+            $this->line('   ❌ Token request failed: ' . $e->getMessage());
+            return;
+        }
+        $this->newLine();
+
+        // Test 3: API Endpoints Test
+        $this->info('3️⃣ API Endpoints Test:');
+        
+        // Test user search endpoint
+        try {
+            $response = $this->ssoUserService->searchUsers(['limit' => 1]);
+            if ($response !== null) {
+                $this->line('   ✅ /api/users/search - Accessible');
+            } else {
+                $this->line('   ❌ /api/users/search - Failed');
+            }
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), '403') !== false) {
+                $this->line('   ❌ /api/users/search - Permission Denied (403)');
+            } else {
+                $this->line('   ❌ /api/users/search - Error: ' . $e->getMessage());
+            }
+        }
+
+        // Test roles endpoint
+        try {
+            $response = $this->ssoUserService->getRoles();
+            if ($response !== null) {
+                $this->line('   ✅ /api/users/roles - Accessible');
+            } else {
+                $this->line('   ❌ /api/users/roles - Failed');
+            }
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), '403') !== false) {
+                $this->line('   ❌ /api/users/roles - Permission Denied (403)');
+            } else {
+                $this->line('   ❌ /api/users/roles - Error: ' . $e->getMessage());
+            }
+        }
+        $this->newLine();
+
+        // Test 4: Permission Summary
+        $this->info('4️⃣ Permission Summary:');
+        $this->line('   If you see permission denied (403) errors above, your OAuth client');
+        $this->line('   needs to be granted admin/user-management permissions on the server.');
+        $this->newLine();
+
+        $this->info('💡 Next Steps:');
+        $this->line('   • If all tests pass: You can run sso:sync normally');
+        $this->line('   • If 403 errors: Contact your OAuth server admin for permissions');
+        $this->line('   • If token fails: Check your client_id and client_secret');
+        $this->line('   • If connection fails: Verify the host URL');
     }
 }
