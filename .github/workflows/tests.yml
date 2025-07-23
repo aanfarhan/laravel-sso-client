@@ -96,7 +96,7 @@ jobs:
 
     - name: Execute tests
       if: steps.php-check.outputs.skip == 'false'
-      run: vendor/bin/phpunit --verbose
+      run: vendor/bin/phpunit
 
   coverage:
     runs-on: ubuntu-latest
