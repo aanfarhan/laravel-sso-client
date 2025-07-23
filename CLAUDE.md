@@ -92,6 +92,34 @@ git tag v10.1.0 -m "Release message"  # On 10.x branch
 git tag v9.1.0 -m "Release message"   # On 9.x branch
 ```
 
+### **IMPORTANT: Release Management Policy**
+**After every commit and push, you MUST create and push new patch version tags for all affected branches:**
+
+```bash
+# Standard workflow after any fix/change:
+# 1. Commit and push to main branch
+git add . && git commit -m "Fix description" && git push origin main
+
+# 2. Apply to other branches (if applicable)
+git checkout 11.x && git cherry-pick main && git push origin 11.x
+git checkout 10.x && git cherry-pick main && git push origin 10.x  
+git checkout 9.x && git cherry-pick main && git push origin 9.x
+
+# 3. ALWAYS create new patch version tags after ANY change
+git checkout main && git tag v12.0.X && git push origin v12.0.X
+git checkout 11.x && git tag v11.0.X && git push origin v11.0.X
+git checkout 10.x && git tag v10.0.X && git push origin v10.0.X
+git checkout 9.x && git tag v9.0.X && git push origin v9.0.X
+
+# Replace X with next patch number (e.g., v12.0.3 → v12.0.4)
+```
+
+**This ensures:**
+- Package users get immediate access to fixes
+- Proper semantic versioning is maintained
+- Release history tracks all changes
+- GitHub releases can be created for each tag
+
 ## Architecture & Structure
 
 ### Core Components
