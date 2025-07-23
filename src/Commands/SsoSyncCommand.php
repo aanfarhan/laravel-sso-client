@@ -1378,56 +1378,25 @@ class SsoSyncCommand extends Command
         $foundUuidFields = array_intersect($uuidFields, $userTableColumns);
         
         if (!empty($foundUuidFields)) {
-            $this->line('   Found UUID fields:');
+            $this->line('   Found UUID fields (will auto-generate during user creation):');
             foreach ($foundUuidFields as $field) {
-                try {
-                    $columnInfo = \Illuminate\Support\Facades\Schema::getConnection()
-                        ->getDoctrineSchemaManager()
-                        ->listTableDetails($userModel->getTable())
-                        ->getColumn($field);
-                    
-                    $nullable = $columnInfo->getNotnull() ? 'NOT NULL' : 'NULLABLE';
-                    $this->line("   • {$field} - {$nullable}");
-                } catch (\Exception $e) {
-                    $this->line("   • {$field} - (constraint check failed)");
-                }
+                $this->line("   • {$field}");
             }
         } else {
             $this->line('   ✅ No UUID fields found - no automatic UUID generation needed');
         }
         $this->newLine();
 
-        $this->info('4️⃣ Column Constraint Analysis:');
-        try {
-            $schemaManager = \Illuminate\Support\Facades\Schema::getConnection()->getDoctrineSchemaManager();
-            $tableDetails = $schemaManager->listTableDetails($userModel->getTable());
-            
-            $notNullColumns = [];
-            foreach ($userTableColumns as $column) {
-                $columnInfo = $tableDetails->getColumn($column);
-                if ($columnInfo->getNotnull() && $columnInfo->getDefault() === null) {
-                    $typeName = $columnInfo->getType()->getName();
-                    $notNullColumns[] = "{$column} ({$typeName})";
-                }
-            }
-            
-            if (!empty($notNullColumns)) {
-                $this->line('   NOT NULL columns without defaults:');
-                foreach ($notNullColumns as $column) {
-                    $this->line("   • {$column}");
-                }
-            } else {
-                $this->line('   ✅ All NOT NULL columns have defaults');
-            }
-        } catch (\Exception $e) {
-            $this->line('   ⚠️  Could not analyze column constraints: ' . $e->getMessage());
-        }
+        $this->info('4️⃣ User Creation Strategy:');
+        $this->line('   ✅ Simplified approach - no constraint checking required');
+        $this->line('   ✅ Auto-generates UUIDs for any UUID field that exists');
+        $this->line('   ✅ Works without Doctrine DBAL dependency');
         $this->newLine();
 
         $this->info('💡 User Creation Process:');
-        $this->line('   • The package automatically generates UUIDs for UUID fields with NOT NULL constraints');
-        $this->line('   • Default values are provided for other required fields based on their type');
-        $this->line('   • This prevents constraint violations during OAuth user creation');
+        $this->line('   • Automatically generates UUIDs for any UUID field found in the user table');
+        $this->line('   • Simple and reliable - no complex constraint analysis needed');
+        $this->line('   • Prevents constraint violations during OAuth user creation');
         $this->line('   • Check the logs for "Auto-generated UUID" messages during login');
     }
 }
