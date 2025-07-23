@@ -90,6 +90,10 @@ jobs:
       if: steps.php-check.outputs.skip == 'false'
       run: composer update --prefer-dist --no-interaction
 
+    - name: Dump autoloader
+      if: steps.php-check.outputs.skip == 'false'
+      run: composer dump-autoload
+
     - name: List Installed Dependencies
       if: steps.php-check.outputs.skip == 'false'
       run: composer show -D
@@ -117,6 +121,9 @@ jobs:
       run: |
         composer require "laravel/framework:12.*" "orchestra/testbench:10.*" "phpunit/phpunit:^11.5" --no-interaction --no-update
         composer update --prefer-dist --no-interaction
+
+    - name: Dump autoloader
+      run: composer dump-autoload
 
     - name: Execute tests with coverage
       run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
