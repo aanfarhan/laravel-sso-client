@@ -51,10 +51,8 @@ class SsoUserService
                        ->first();
 
             if ($user) {
-                $preservedFields = config('sso-client.preserved_fields', [
-                    'id_role', 'nik', 'address', 'nip_pbb', 
-                    'kd_propinsi', 'kd_dati2', 'kd_kecamatan', 'kd_kelurahan'
-                ]);
+                // Auto-detect fields to preserve by comparing with OAuth data structure
+                $preservedFields = $this->getAutoPreservedFields($userData, $user);
                 
                 $updateData = array_diff_key($userData, array_flip($preservedFields));
                 $user->update($updateData);
@@ -439,5 +437,39 @@ class SsoUserService
         }
 
         return null;
+    }
+
+    /**
+     * Auto-detect fields that should be preserved based on local user model vs OAuth data
+     */
+    protected function getAutoPreservedFields(array $oauthData, $user): array
+    {
+        $userModel = new $this->userModel;
+        $userTableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($userModel->getTable());
+        
+        // Fields that are always preserved (local-only fields)
+        $alwaysPreserved = [
+            'id', 'created_at', 'updated_at', 'remember_token', 'oauth_id', 
+            'oauth_data', 'synced_at', 'is_active', 'deleted_at'
+        ];
+        
+        // Fields that exist in local database but not in OAuth data should be preserved
+        $oauthFields = array_keys($oauthData);
+        $preservedFields = [];
+        
+        foreach ($userTableColumns as $column) {
+            // Always preserve the always-preserved fields
+            if (in_array($column, $alwaysPreserved)) {
+                $preservedFields[] = $column;
+                continue;
+            }
+            
+            // Preserve fields that don't exist in OAuth data (local-only fields)
+            if (!in_array($column, $oauthFields)) {
+                $preservedFields[] = $column;
+            }
+        }
+        
+        return $preservedFields;
     }
 }
