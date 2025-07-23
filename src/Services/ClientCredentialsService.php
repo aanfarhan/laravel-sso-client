@@ -67,10 +67,16 @@ class ClientCredentialsService
     {
         $token = $this->getAccessToken();
         
-        $request = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-            'Accept' => 'application/json',
-        ]);
+        if (!$token) {
+            throw new \Exception('Failed to obtain access token for API request');
+        }
+        
+        // Use withToken method which is more reliable than withHeaders for OAuth
+        $request = Http::withToken($token)
+            ->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ]);
 
         switch (strtolower($method)) {
             case 'get':
