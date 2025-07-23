@@ -126,7 +126,7 @@ jobs:
       run: composer dump-autoload
 
     - name: Execute tests with coverage
-      run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+      run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover --coverage-filter=src
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
