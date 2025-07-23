@@ -32,7 +32,8 @@ class SsoSyncCommand extends Command
                            {--test-password-sync= : Test password sync for specific user email}
                            {--validate-passwords : Validate password compatibility before sync}
                            {--show-field-detection : Show auto-detected syncable and preserved fields}
-                           {--test-connection : Test OAuth server connection and permissions}';
+                           {--test-connection : Test OAuth server connection and permissions}
+                           {--debug-user-creation : Show debug info for user creation process}';
     
     protected $description = 'Sync user data between OAuth client and server';
 
@@ -110,6 +111,12 @@ class SsoSyncCommand extends Command
         // Test connection and permissions if requested
         if ($this->option('test-connection')) {
             $this->runConnectionTest();
+            return 0;
+        }
+
+        // Show user creation debug info if requested
+        if ($this->option('debug-user-creation')) {
+            $this->showUserCreationDebug();
             return 0;
         }
 
@@ -1345,5 +1352,82 @@ class SsoSyncCommand extends Command
         $this->line('   • If 403 errors: Contact your OAuth server admin for permissions');
         $this->line('   • If token fails: Check your client_id and client_secret');
         $this->line('   • If connection fails: Verify the host URL');
+    }
+
+    protected function showUserCreationDebug(): void
+    {
+        $this->info('🔍 User Creation Debug Information');
+        $this->newLine();
+
+        $userModel = new $this->userModel;
+        $userTableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($userModel->getTable());
+
+        $this->info('1️⃣ User Model Information:');
+        $this->line("   Model: {$this->userModel}");
+        $this->line("   Table: {$userModel->getTable()}");
+        $this->newLine();
+
+        $this->info('2️⃣ Table Columns:');
+        foreach ($userTableColumns as $column) {
+            $this->line("   • {$column}");
+        }
+        $this->newLine();
+
+        $this->info('3️⃣ UUID Field Detection:');
+        $uuidFields = ['uuid', 'user_uuid', 'guid', 'user_guid'];
+        $foundUuidFields = array_intersect($uuidFields, $userTableColumns);
+        
+        if (!empty($foundUuidFields)) {
+            $this->line('   Found UUID fields:');
+            foreach ($foundUuidFields as $field) {
+                try {
+                    $columnInfo = \Illuminate\Support\Facades\Schema::getConnection()
+                        ->getDoctrineSchemaManager()
+                        ->listTableDetails($userModel->getTable())
+                        ->getColumn($field);
+                    
+                    $nullable = $columnInfo->getNotnull() ? 'NOT NULL' : 'NULLABLE';
+                    $this->line("   • {$field} - {$nullable}");
+                } catch (\Exception $e) {
+                    $this->line("   • {$field} - (constraint check failed)");
+                }
+            }
+        } else {
+            $this->line('   ✅ No UUID fields found - no automatic UUID generation needed');
+        }
+        $this->newLine();
+
+        $this->info('4️⃣ Column Constraint Analysis:');
+        try {
+            $schemaManager = \Illuminate\Support\Facades\Schema::getConnection()->getDoctrineSchemaManager();
+            $tableDetails = $schemaManager->listTableDetails($userModel->getTable());
+            
+            $notNullColumns = [];
+            foreach ($userTableColumns as $column) {
+                $columnInfo = $tableDetails->getColumn($column);
+                if ($columnInfo->getNotnull() && $columnInfo->getDefault() === null) {
+                    $typeName = $columnInfo->getType()->getName();
+                    $notNullColumns[] = "{$column} ({$typeName})";
+                }
+            }
+            
+            if (!empty($notNullColumns)) {
+                $this->line('   NOT NULL columns without defaults:');
+                foreach ($notNullColumns as $column) {
+                    $this->line("   • {$column}");
+                }
+            } else {
+                $this->line('   ✅ All NOT NULL columns have defaults');
+            }
+        } catch (\Exception $e) {
+            $this->line('   ⚠️  Could not analyze column constraints: ' . $e->getMessage());
+        }
+        $this->newLine();
+
+        $this->info('💡 User Creation Process:');
+        $this->line('   • The package automatically generates UUIDs for UUID fields with NOT NULL constraints');
+        $this->line('   • Default values are provided for other required fields based on their type');
+        $this->line('   • This prevents constraint violations during OAuth user creation');
+        $this->line('   • Check the logs for "Auto-generated UUID" messages during login');
     }
 }
