@@ -8,6 +8,11 @@
             "Omniglies\\LaravelSsoClient\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Omniglies\\LaravelSsoClient\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "aanfarhan",
