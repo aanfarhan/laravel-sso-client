@@ -62,6 +62,8 @@ class SsoUserService
                     'oauth_id' => $userData['oauth_id']
                 ]);
             } else {
+                // Prepare user data with auto-generated UUIDs if needed
+                $userData = $this->prepareUserDataForCreation($userData);
                 $user = $this->userModel::create($userData);
                 
                 if (config('sso-client.default_role') && method_exists($user, 'assignRole')) {
@@ -477,5 +479,133 @@ class SsoUserService
         }
         
         return $preservedFields;
+    }
+
+    /**
+     * Prepare user data for creation by auto-generating required fields like UUIDs
+     */
+    protected function prepareUserDataForCreation(array $userData): array
+    {
+        $userModel = new $this->userModel;
+        $userTableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($userModel->getTable());
+        
+        // Check for UUID fields and generate them if they exist and are required
+        $uuidFields = ['uuid', 'user_uuid', 'guid', 'user_guid'];
+        
+        foreach ($uuidFields as $uuidField) {
+            if (in_array($uuidField, $userTableColumns) && !isset($userData[$uuidField])) {
+                try {
+                    // Check if the column is NOT NULL by examining the column details
+                    $columnInfo = \Illuminate\Support\Facades\Schema::getConnection()
+                        ->getDoctrineSchemaManager()
+                        ->listTableDetails($userModel->getTable())
+                        ->getColumn($uuidField);
+                    
+                    // If column is not nullable (has NOT NULL constraint), generate a UUID
+                    if ($columnInfo->getNotnull()) {
+                        $userData[$uuidField] = $this->generateUuid();
+                        \Illuminate\Support\Facades\Log::info("Auto-generated UUID for field: {$uuidField}");
+                    }
+                } catch (\Exception $e) {
+                    // Fallback: If we can't check constraints, generate UUID for common UUID field names
+                    $userData[$uuidField] = $this->generateUuid();
+                    \Illuminate\Support\Facades\Log::info("Auto-generated UUID for field (fallback): {$uuidField}");
+                }
+            }
+        }
+        
+        // Also check for other common required fields that might need defaults
+        $this->setDefaultsForRequiredFields($userData, $userTableColumns, $userModel);
+        
+        return $userData;
+    }
+
+    /**
+     * Generate a UUID v4
+     */
+    protected function generateUuid(): string
+    {
+        // Use Laravel's Str::uuid() if available, otherwise generate manually
+        if (class_exists('Illuminate\Support\Str') && method_exists('Illuminate\Support\Str', 'uuid')) {
+            return \Illuminate\Support\Str::uuid()->toString();
+        }
+        
+        // Fallback UUID v4 generation
+        return sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+
+    /**
+     * Set defaults for other required fields that might be missing
+     */
+    protected function setDefaultsForRequiredFields(array &$userData, array $columns, $userModel): void
+    {
+        try {
+            // Get column information to check for NOT NULL constraints
+            $schemaManager = \Illuminate\Support\Facades\Schema::getConnection()->getDoctrineSchemaManager();
+            $tableDetails = $schemaManager->listTableDetails($userModel->getTable());
+            
+            foreach ($columns as $column) {
+                // Skip if data already provided
+                if (isset($userData[$column])) {
+                    continue;
+                }
+                
+                $columnInfo = $tableDetails->getColumn($column);
+                
+                // If column is NOT NULL and doesn't have a default, we need to provide a value
+                if ($columnInfo->getNotnull() && $columnInfo->getDefault() === null) {
+                    // Set appropriate defaults based on column type and name
+                    $userData[$column] = $this->getDefaultValueForColumn($column, $columnInfo);
+                }
+            }
+        } catch (\Exception $e) {
+            // If we can't get column info, continue without setting defaults
+            \Illuminate\Support\Facades\Log::warning('Could not check column constraints for user creation', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get appropriate default value for a column based on its type and name
+     */
+    protected function getDefaultValueForColumn(string $columnName, $columnInfo): mixed
+    {
+        $typeName = $columnInfo->getType()->getName();
+        
+        // Skip certain system fields that should be handled by Laravel/DB
+        $skipFields = ['id', 'created_at', 'updated_at', 'email_verified_at', 'remember_token'];
+        if (in_array($columnName, $skipFields)) {
+            return null;
+        }
+        
+        // Return appropriate defaults based on type
+        switch (strtolower($typeName)) {
+            case 'string':
+            case 'text':
+                return '';
+            case 'integer':
+            case 'bigint':
+            case 'smallint':
+                return 0;
+            case 'boolean':
+                return false;
+            case 'datetime':
+            case 'timestamp':
+                return now();
+            case 'date':
+                return now()->toDateString();
+            case 'json':
+                return '{}';
+            default:
+                return null;
+        }
     }
 }
