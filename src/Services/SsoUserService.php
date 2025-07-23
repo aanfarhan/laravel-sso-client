@@ -165,13 +165,17 @@ class SsoUserService
                 throw new \Exception("HTTP 403: $bodyContent");
             }
 
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            Log::error('User search HTTP error', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
         } catch (\Exception $e) {
             Log::error('User search API error', [
                 'error' => $e->getMessage()
             ]);
+            throw $e; // Re-throw other exceptions so they can be handled properly
         }
-
-        return null;
     }
 
     /**
