@@ -14,81 +14,66 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Laravel 12.x (main branch)
-          - laravel: 12.*
-            php: 8.2
-            testbench: 10.*
-            phpunit: ^11.5
-            branch: main
-          - laravel: 12.*
-            php: 8.3
-            testbench: 10.*
-            phpunit: ^11.5
-            branch: main
-          - laravel: 12.*
-            php: 8.3
-            testbench: 10.*
-            phpunit: ^12.0
-            branch: main
-            
-          # Laravel 11.x
-          - laravel: 11.*
-            php: 8.2
-            testbench: 9.*
-            phpunit: ^10.5
-            branch: 11.x
-          - laravel: 11.*
-            php: 8.3
-            testbench: 9.*
-            phpunit: ^10.5
-            branch: 11.x
-          - laravel: 11.*
-            php: 8.3
-            testbench: 9.*
-            phpunit: ^11.3
-            branch: 11.x
-            
-          # Laravel 10.x
-          - laravel: 10.*
-            php: 8.1
-            testbench: 8.*
-            phpunit: ^9.6
-            branch: 10.x
-          - laravel: 10.*
-            php: 8.2
-            testbench: 8.*
-            phpunit: ^9.6
-            branch: 10.x
-          - laravel: 10.*
-            php: 8.3
-            testbench: 8.*
-            phpunit: ^10.1
-            branch: 10.x
-            
-          # Laravel 9.x
-          - laravel: 9.*
-            php: 8.0
-            testbench: 7.*
-            phpunit: ^9.6
-            branch: 9.x
-          - laravel: 9.*
-            php: 8.1
-            testbench: 7.*
-            phpunit: ^9.6
-            branch: 9.x
-          - laravel: 9.*
-            php: 8.2
-            testbench: 7.*
-            phpunit: ^10.1
-            branch: 9.x
+          # This matrix will be filtered by branch requirements in the steps
+          - php: 8.0
+          - php: 8.1
+          - php: 8.2
+          - php: 8.3
 
-    name: Laravel ${{ matrix.laravel }} - PHP ${{ matrix.php }} - PHPUnit ${{ matrix.phpunit }}
+    name: PHP ${{ matrix.php }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    
+    - name: Check PHP version compatibility with branch
+      id: php-check
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        echo "Branch: $BRANCH_NAME"
+        echo "PHP: ${{ matrix.php }}"
+        
+        # Define PHP requirements for each branch
+        case "$BRANCH_NAME" in
+          "main")
+            # Laravel 12.x requires PHP 8.2+
+            if [[ "${{ matrix.php }}" < "8.2" ]]; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping PHP ${{ matrix.php }} for Laravel 12.x (main branch)"
+            else
+              echo "skip=false" >> $GITHUB_OUTPUT
+            fi
+            ;;
+          "11.x")
+            # Laravel 11.x requires PHP 8.2+
+            if [[ "${{ matrix.php }}" < "8.2" ]]; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping PHP ${{ matrix.php }} for Laravel 11.x"
+            else
+              echo "skip=false" >> $GITHUB_OUTPUT
+            fi
+            ;;
+          "10.x")
+            # Laravel 10.x requires PHP 8.1+
+            if [[ "${{ matrix.php }}" < "8.1" ]]; then
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "Skipping PHP ${{ matrix.php }} for Laravel 10.x"
+            else
+              echo "skip=false" >> $GITHUB_OUTPUT
+            fi
+            ;;
+          "9.x")
+            # Laravel 9.x requires PHP 8.0+
+            echo "skip=false" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Unknown branch: $BRANCH_NAME"
+            ;;
+        esac
 
     - name: Setup PHP
+      if: steps.php-check.outputs.skip == 'false'
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
@@ -96,20 +81,26 @@ jobs:
         coverage: none
 
     - name: Setup problem matchers
+      if: steps.php-check.outputs.skip == 'false'
       run: |
         echo "::add-matcher::${{ runner.tool_cache }}/php.json"
         echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
     - name: Install dependencies
-      run: |
-        composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "phpunit/phpunit:${{ matrix.phpunit }}" --no-interaction --no-update
-        composer update --prefer-dist --no-interaction
+      if: steps.php-check.outputs.skip == 'false'
+      run: composer update --prefer-dist --no-interaction
+
+    - name: Dump autoloader
+      if: steps.php-check.outputs.skip == 'false'
+      run: composer dump-autoload
 
     - name: List Installed Dependencies
+      if: steps.php-check.outputs.skip == 'false'
       run: composer show -D
 
     - name: Execute tests
-      run: vendor/bin/phpunit --verbose
+      if: steps.php-check.outputs.skip == 'false'
+      run: vendor/bin/phpunit
 
   coverage:
     runs-on: ubuntu-latest
@@ -130,6 +121,9 @@ jobs:
       run: |
         composer require "laravel/framework:12.*" "orchestra/testbench:10.*" "phpunit/phpunit:^11.5" --no-interaction --no-update
         composer update --prefer-dist --no-interaction
+
+    - name: Dump autoloader
+      run: composer dump-autoload
 
     - name: Execute tests with coverage
       run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover

@@ -42,9 +42,9 @@ class SsoClientServiceProviderTest extends TestCase
             }
         }
         
-        $this->assertContains('sso.redirect', $routeNames);
-        $this->assertContains('sso.callback', $routeNames);
-        $this->assertContains('sso.logout', $routeNames);
-        $this->assertContains('sso.local-logout', $routeNames);
+        $this->assertTrue(in_array('sso.redirect', $routeNames));
+        $this->assertTrue(in_array('sso.callback', $routeNames));
+        $this->assertTrue(in_array('sso.logout', $routeNames));
+        $this->assertTrue(in_array('sso.local-logout', $routeNames));
     }
 }
