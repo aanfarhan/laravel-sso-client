@@ -27,17 +27,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Preserved Fields
+    | Field Preservation (Auto-Detected)
     |--------------------------------------------------------------------------
     |
-    | Fields that should not be overwritten when syncing user data from OAuth.
-    | These are typically local-only fields that shouldn't be modified by SSO.
+    | The package now automatically detects which fields to preserve during
+    | user synchronization by comparing local user model fields with OAuth
+    | server user fields. Fields that exist locally but not on the server
+    | are automatically preserved to prevent local data loss.
     |
     */
-    'preserved_fields' => [
-        'id_role', 'nik', 'address', 'nip_pbb', 
-        'kd_propinsi', 'kd_dati2', 'kd_kecamatan', 'kd_kelurahan'
-    ],
 
     /*
     |--------------------------------------------------------------------------
