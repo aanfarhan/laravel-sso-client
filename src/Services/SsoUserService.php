@@ -176,6 +176,8 @@ class SsoUserService
             ]);
             throw $e; // Re-throw other exceptions so they can be handled properly
         }
+        
+        return null;
     }
 
     /**
