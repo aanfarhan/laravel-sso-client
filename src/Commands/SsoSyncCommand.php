@@ -30,7 +30,8 @@ class SsoSyncCommand extends Command
                            {--update-passwords : Sync passwords for existing users}
                            {--skip-password-sync : Skip password synchronization entirely}
                            {--test-password-sync= : Test password sync for specific user email}
-                           {--validate-passwords : Validate password compatibility before sync}';
+                           {--validate-passwords : Validate password compatibility before sync}
+                           {--show-field-detection : Show auto-detected syncable and preserved fields}';
     
     protected $description = 'Sync user data between OAuth client and server';
 
@@ -97,6 +98,12 @@ class SsoSyncCommand extends Command
         // Validate connection to OAuth server
         if (!$this->validateServerConnection()) {
             return 1;
+        }
+
+        // Show field detection information if requested
+        if ($this->option('show-field-detection')) {
+            $this->showFieldDetectionInfo();
+            return 0;
         }
 
         // Setup scope management if enabled
@@ -508,14 +515,64 @@ class SsoSyncCommand extends Command
         $userModel = new $this->userModel;
         $userTableColumns = Schema::getColumnListing($userModel->getTable());
         
-        // Common fields that should be synced
-        $commonFields = [
+        // Get server user fields by making a sample request to understand the server's user structure
+        $serverFields = $this->getServerUserFields();
+        
+        // Standard OAuth/SSO fields that should always be synced if they exist on both sides
+        $standardSyncFields = [
             'name', 'email', 'username', 'email_verified_at', 
-            'password', 'phone', 'address', 'avatar'
+            'password', 'phone', 'avatar'
         ];
+        
+        // Fields that are typically local-only and should be preserved
+        $typicalLocalFields = [
+            'id', 'created_at', 'updated_at', 'remember_token', 'oauth_id', 
+            'oauth_data', 'synced_at', 'is_active', 'deleted_at'
+        ];
+        
+        // Auto-detect syncable fields: fields that exist on both client and server
+        $syncableFields = [];
+        if ($serverFields) {
+            foreach ($userTableColumns as $field) {
+                // Skip typical local-only fields
+                if (in_array($field, $typicalLocalFields)) {
+                    continue;
+                }
+                
+                // Include if field exists on server (suggesting it's meant to be synced)
+                if (in_array($field, $serverFields)) {
+                    $syncableFields[] = $field;
+                }
+                
+                // Always include standard sync fields if they exist locally
+                if (in_array($field, $standardSyncFields)) {
+                    $syncableFields[] = $field;
+                }
+            }
+        } else {
+            // Fallback to standard fields if we can't determine server structure
+            $syncableFields = array_intersect($standardSyncFields, $userTableColumns);
+        }
 
-        // Return only fields that exist in the local user table
-        return array_intersect($commonFields, $userTableColumns);
+        return array_unique($syncableFields);
+    }
+    
+    protected function getServerUserFields(): ?array
+    {
+        try {
+            // Get a sample user from server to understand field structure
+            $response = $this->ssoUserService->searchUsers(['limit' => 1]);
+            
+            if ($response && isset($response['data']) && count($response['data']) > 0) {
+                $sampleUser = $response['data'][0];
+                return array_keys($sampleUser);
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            // If we can't get server structure, return null to use fallback
+            return null;
+        }
     }
 
     protected function hasClientAccess(array $serverUser): bool
@@ -1085,6 +1142,57 @@ class SsoSyncCommand extends Command
             $this->line("   • Consider using --skip-password-sync to avoid sync issues");
             $this->line("   • Or manually reset passwords on OAuth server after sync");
             $this->line("   • Check if both systems use the same hashing algorithm");
+        }
+    }
+
+    protected function showFieldDetectionInfo(): void
+    {
+        $this->info('🔍 Field Detection Analysis');
+        $this->newLine();
+
+        $userModel = new $this->userModel;
+        $userTableColumns = Schema::getColumnListing($userModel->getTable());
+        $serverFields = $this->getServerUserFields();
+        $syncableFields = $this->getSyncableFields();
+
+        $this->info('📋 Local User Model Fields:');
+        foreach ($userTableColumns as $field) {
+            $this->line("  • {$field}");
+        }
+        $this->newLine();
+
+        if ($serverFields) {
+            $this->info('🌐 Server User Fields:');
+            foreach ($serverFields as $field) {
+                $this->line("  • {$field}");
+            }
+            $this->newLine();
+
+            $this->info('🔄 Auto-Detected Syncable Fields:');
+            foreach ($syncableFields as $field) {
+                $this->line("  • {$field}");
+            }
+            $this->newLine();
+
+            // Show preserved fields
+            $preservedFields = array_diff($userTableColumns, $syncableFields);
+            $this->info('🔒 Auto-Preserved Fields (Local-Only):');
+            foreach ($preservedFields as $field) {
+                $this->line("  • {$field}");
+            }
+            $this->newLine();
+
+            $this->info('💡 Field Detection Logic:');
+            $this->line('  • Fields that exist on both client and server are syncable');
+            $this->line('  • Standard OAuth fields (name, email, username, etc.) are always syncable');
+            $this->line('  • Fields that exist only locally are automatically preserved');
+            $this->line('  • System fields (id, timestamps, tokens) are always preserved');
+        } else {
+            $this->warn('⚠️  Could not retrieve server user fields');
+            $this->line('  Using fallback syncable fields:');
+            foreach ($syncableFields as $field) {
+                $this->line("  • {$field}");
+            }
         }
     }
 }
