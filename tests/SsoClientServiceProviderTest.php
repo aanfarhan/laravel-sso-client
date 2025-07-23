@@ -7,14 +7,12 @@ use Omniglies\LaravelSsoClient\SsoClient;
 
 class SsoClientServiceProviderTest extends TestCase
 {
-    /** @test */
-    public function it_registers_the_service_provider()
+    public function test_it_registers_the_service_provider()
     {
         $this->assertTrue($this->app->providerIsLoaded(SsoClientServiceProvider::class));
     }
 
-    /** @test */
-    public function it_registers_the_sso_client_singleton()
+    public function test_it_registers_the_sso_client_singleton()
     {
         $this->assertTrue($this->app->bound('sso-client'));
         
@@ -22,15 +20,13 @@ class SsoClientServiceProviderTest extends TestCase
         $this->assertInstanceOf(SsoClient::class, $ssoClient);
     }
 
-    /** @test */
-    public function it_merges_configuration()
+    public function test_it_merges_configuration()
     {
         $this->assertNotNull(config('sso-client.user_model'));
         $this->assertEquals('App\Models\User', config('sso-client.user_model'));
     }
 
-    /** @test */
-    public function it_registers_routes()
+    public function test_it_registers_routes()
     {
         $routes = $this->app['router']->getRoutes();
         
