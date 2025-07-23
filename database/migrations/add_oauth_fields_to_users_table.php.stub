@@ -9,18 +9,47 @@ return new class extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('oauth_id')->nullable()->unique()->after('id');
-            $table->string('username')->nullable()->after('oauth_id');
-            $table->json('oauth_data')->nullable()->after('email_verified_at');
-            $table->timestamp('synced_at')->nullable()->after('oauth_data');
-            $table->boolean('is_active')->default(true)->after('synced_at');
+            if (!Schema::hasColumn('users', 'oauth_id')) {
+                $table->string('oauth_id')->nullable()->unique()->after('id');
+            }
+            if (!Schema::hasColumn('users', 'username')) {
+                $table->string('username')->nullable()->after('oauth_id');
+            }
+            if (!Schema::hasColumn('users', 'oauth_data')) {
+                $table->json('oauth_data')->nullable()->after('email_verified_at');
+            }
+            if (!Schema::hasColumn('users', 'synced_at')) {
+                $table->timestamp('synced_at')->nullable()->after('oauth_data');
+            }
+            if (!Schema::hasColumn('users', 'is_active')) {
+                $table->boolean('is_active')->default(true)->after('synced_at');
+            }
         });
     }
 
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['oauth_id', 'username', 'oauth_data', 'synced_at', 'is_active']);
+            $columns = [];
+            if (Schema::hasColumn('users', 'oauth_id')) {
+                $columns[] = 'oauth_id';
+            }
+            if (Schema::hasColumn('users', 'username')) {
+                $columns[] = 'username';
+            }
+            if (Schema::hasColumn('users', 'oauth_data')) {
+                $columns[] = 'oauth_data';
+            }
+            if (Schema::hasColumn('users', 'synced_at')) {
+                $columns[] = 'synced_at';
+            }
+            if (Schema::hasColumn('users', 'is_active')) {
+                $columns[] = 'is_active';
+            }
+            
+            if (!empty($columns)) {
+                $table->dropColumn($columns);
+            }
         });
     }
 };
