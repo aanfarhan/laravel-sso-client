@@ -157,6 +157,12 @@ class SsoUserService
                 'body' => $response->body()
             ]);
 
+            // Throw specific exceptions for permission issues
+            if ($response->status() === 403) {
+                $bodyContent = $response->body();
+                throw new \Exception("HTTP 403: $bodyContent");
+            }
+
         } catch (\Exception $e) {
             Log::error('User search API error', [
                 'error' => $e->getMessage()

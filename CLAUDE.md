@@ -62,6 +62,39 @@ php artisan sso:sync --role-mapping --default-role=user
 
 # Test password compatibility
 php artisan sso:sync --test-password-sync=user@example.com
+
+# Test OAuth connection and permissions
+php artisan sso:sync --test-connection
+
+# Show auto-detected field synchronization logic
+php artisan sso:sync --show-field-detection
+```
+
+### Troubleshooting OAuth Permissions
+
+If you encounter "Client does not have admin user management permissions" error:
+
+```bash
+# Test your OAuth configuration
+php artisan sso:sync --test-connection
+```
+
+**Common Permission Issues:**
+- OAuth client lacks `user-management` or `admin-api` scopes
+- Client credentials are incorrect in `.env` file
+- OAuth server doesn't allow client-credentials grant for user operations
+
+**Required OAuth Client Scopes:**
+- `user-management` - For creating/updating users
+- `admin-api` - For administrative operations  
+- `client-credentials-admin` - For client credentials flow
+
+**Configuration Check:**
+```bash
+# Verify these environment variables are set:
+LARAVELPASSPORT_HOST=https://your-oauth-server.com
+LARAVELPASSPORT_CLIENT_ID=your-client-id
+LARAVELPASSPORT_CLIENT_SECRET=your-client-secret
 ```
 
 ### Testing
