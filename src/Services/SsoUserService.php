@@ -91,16 +91,14 @@ class SsoUserService
                 ]
             ]);
             
-            return $this->userModel::updateOrCreate(
-                ['email' => $oauthUser->email],
-                [
-                    'oauth_id' => $oauthUser->id,
-                    'username' => $oauthUser->nickname ?? $oauthUser->email,
-                    'email' => $oauthUser->email,
-                    'name' => $oauthUser->name,
-                    'synced_at' => now(),
-                ]
-            );
+            // Fallback: create minimal user data and handle required fields safely
+            return $this->safeCreateOrUpdateUser([
+                'oauth_id' => $oauthUser->id,
+                'username' => $oauthUser->nickname ?? $oauthUser->email,
+                'email' => $oauthUser->email,
+                'name' => $oauthUser->name,
+                'synced_at' => now(),
+            ]);
         }
     }
 
@@ -527,6 +525,132 @@ class SsoUserService
             mt_rand(0, 0x3fff) | 0x8000,
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
+    }
+
+    /**
+     * Safely create or update user with proper handling of required fields
+     */
+    protected function safeCreateOrUpdateUser(array $userData)
+    {
+        try {
+            // Find existing user by email or oauth_id
+            $user = $this->userModel::where('email', $userData['email'])
+                       ->orWhere('oauth_id', $userData['oauth_id'])
+                       ->first();
+
+            if ($user) {
+                // Update existing user with field preservation
+                $preservedFields = $this->getAutoPreservedFields($userData, $user);
+                $updateData = array_diff_key($userData, array_flip($preservedFields));
+                $user->update($updateData);
+                
+                Log::info('User safely updated with field preservation', [
+                    'user_id' => $user->id,
+                    'oauth_id' => $userData['oauth_id'],
+                    'preserved_fields' => $preservedFields
+                ]);
+                
+                return $user;
+            } else {
+                // Create new user with required field handling
+                $userData = $this->prepareUserDataForCreation($userData);
+                $userData = $this->addDefaultValuesForRequiredFields($userData);
+                
+                $user = $this->userModel::create($userData);
+                
+                if (config('sso-client.default_role') && method_exists($user, 'assignRole')) {
+                    $user->assignRole(config('sso-client.default_role'));
+                }
+                
+                Log::info('User safely created with default values', [
+                    'user_id' => $user->id,
+                    'oauth_id' => $userData['oauth_id'],
+                    'default_role' => config('sso-client.default_role')
+                ]);
+                
+                return $user;
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to safely create/update user', [
+                'error' => $e->getMessage(),
+                'user_data' => array_intersect_key($userData, array_flip(['oauth_id', 'email', 'username', 'name']))
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Add default values for required fields that might not be provided by OAuth
+     */
+    protected function addDefaultValuesForRequiredFields(array $userData): array
+    {
+        $userModel = new $this->userModel;
+        $userTableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($userModel->getTable());
+        
+        // Get default values from config
+        $defaultValues = config('sso-client.default_field_values', []);
+        
+        // Common field defaults for typical Laravel user tables
+        $commonDefaults = [
+            'email_verified_at' => null,
+            'password' => '', // Empty password for OAuth-only users
+            'first_name' => $this->extractFirstName($userData['name'] ?? ''),
+            'last_name' => $this->extractLastName($userData['name'] ?? ''),
+            'phone' => null,
+            'address' => null,
+            'city' => null,
+            'state' => null,
+            'country' => null,
+            'postal_code' => null,
+            'is_active' => true,
+            'status' => 'active',
+        ];
+        
+        // Merge config defaults with common defaults
+        $allDefaults = array_merge($commonDefaults, $defaultValues);
+        
+        foreach ($userTableColumns as $column) {
+            // Skip if field already has a value
+            if (isset($userData[$column])) {
+                continue;
+            }
+            
+            // Skip auto-managed fields
+            $skipFields = ['id', 'created_at', 'updated_at', 'deleted_at', 'remember_token'];
+            if (in_array($column, $skipFields)) {
+                continue;
+            }
+            
+            // Add default value if available
+            if (isset($allDefaults[$column])) {
+                $userData[$column] = $allDefaults[$column];
+                Log::debug("Added default value for field: {$column}");
+            }
+        }
+        
+        return $userData;
+    }
+
+    /**
+     * Extract first name from full name
+     */
+    protected function extractFirstName(string $fullName): string
+    {
+        $parts = explode(' ', trim($fullName));
+        return $parts[0] ?? '';
+    }
+
+    /**
+     * Extract last name from full name
+     */
+    protected function extractLastName(string $fullName): string
+    {
+        $parts = explode(' ', trim($fullName));
+        if (count($parts) > 1) {
+            array_shift($parts); // Remove first name
+            return implode(' ', $parts);
+        }
+        return '';
     }
 
 }

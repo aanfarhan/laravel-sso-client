@@ -178,9 +178,31 @@ src/
 ```
 
 ### Configuration
-- **config/sso-client.php**: Package configuration including user model, preserved fields, routing
+- **config/sso-client.php**: Package configuration including user model, preserved fields, routing, and default field values
 - **Environment variables**: OAuth client credentials and server host settings
 - **Database migrations**: Adds OAuth-related fields to users table (oauth_id, username, oauth_data, synced_at, is_active)
+
+#### Handling Required Fields Not Provided by OAuth Server
+
+If your local user table contains required fields that don't exist in the OAuth server response (like `first_name`, `last_name`, `phone`, etc.), configure default values in `config/sso-client.php`:
+
+```php
+'default_field_values' => [
+    'first_name' => '',        // Will be auto-extracted from 'name' field
+    'last_name' => '',         // Will be auto-extracted from 'name' field  
+    'phone' => null,
+    'department' => 'General',
+    'is_verified' => false,
+    'status' => 'active',
+],
+```
+
+**How it works:**
+- The package automatically detects which fields exist in your user table
+- For fields not provided by OAuth server, it uses configured default values
+- Common fields like `first_name`/`last_name` are auto-extracted from the OAuth `name` field
+- UUID fields are automatically generated if they exist in your table
+- Local-only fields are preserved during user updates to prevent data loss
 
 ### Routes & Endpoints
 All routes are prefixed with `/sso` (configurable):

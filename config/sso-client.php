@@ -39,6 +39,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Default Field Values
+    |--------------------------------------------------------------------------
+    |
+    | Default values for required database fields that might not be provided
+    | by the OAuth server. This is useful when your user table has required
+    | fields like 'first_name', 'last_name', 'phone', etc. that don't exist
+    | in the OAuth server response.
+    |
+    | Example:
+    | 'default_field_values' => [
+    |     'first_name' => '',
+    |     'last_name' => '',
+    |     'phone' => null,
+    |     'department' => 'General',
+    |     'is_verified' => false,
+    | ],
+    |
+    */
+    'default_field_values' => [
+        // Add your custom default values here
+        // 'first_name' => '',
+        // 'last_name' => '',
+        // 'phone' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Redirect After Login
     |--------------------------------------------------------------------------
     |
