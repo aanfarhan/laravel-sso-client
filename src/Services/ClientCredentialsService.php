@@ -27,7 +27,15 @@ class ClientCredentialsService
     {
         // Check cache first
         $cacheKey = 'sso_client_credentials_token_' . $this->clientId;
-        $cachedToken = Cache::get($cacheKey);
+        
+        try {
+            $cachedToken = Cache::get($cacheKey);
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            // Cache decryption failed (likely due to APP_KEY mismatch)
+            // Clear corrupted cache and request new token
+            Cache::forget($cacheKey);
+            $cachedToken = null;
+        }
         
         if ($cachedToken) {
             $this->accessToken = $cachedToken;
