@@ -35,6 +35,14 @@ class ClientCredentialsService
             // Clear corrupted cache and request new token
             Cache::forget($cacheKey);
             $cachedToken = null;
+        } catch (\LogicException $e) {
+            // Handle cases where Laravel throws LogicException for invalid encryption key
+            if (strpos($e->getMessage(), 'Invalid key supplied') !== false) {
+                Cache::forget($cacheKey);
+                $cachedToken = null;
+            } else {
+                throw $e; // Re-throw if it's a different LogicException
+            }
         }
         
         if ($cachedToken) {
